@@ -15,5 +15,5 @@ This folder contains scripts that access, clean and export data in csv files loc
 ## Data Analysis
 Analysis of our variables. Work in progress.
 
-## Leanring Model
+## Learning Model
 Learning model. Work in progress
