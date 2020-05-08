@@ -1,30 +1,33 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Mar 13 12:33:33 2020
-
-@author: margaretsant
-"""
 
 
 
-################ Webscraper to get descriptions for each URL: #################
+
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
+import ast
 
-data = pd.read_csv("datasets/traffic_by_query.csv")
-performance_data = pd.DataFrame(data['URL']).drop_duplicates()
-performance_data['URL'] = performance_data['URL'].str.replace("'","")
+##########  Importing dataset ##########
+
+performance_data = pd.read_csv("datasets/traffic_by_page.csv")
+performance_data = performance_data.drop(columns = ['Unnamed: 0'])
 
 
-#   keep data with URLs that are product pages:
-#   performance_data = performance_data[performance_data['Page'].str.contains("/product/")]
+##########  Cleaning dataset  ##########
 
-#   remove rows with URLs that do not produce error code or have redirection:
+
+performance_data['URL'] = performance_data['URL'].str.replace("[","")
+performance_data['URL'] = performance_data['URL'].str.replace("]","")
+performance_data['URL'] = performance_data['URL'].str.replace("'",'')
 
 for i in range(len(performance_data)):
-    response = requests.get(performance_data['URL'].iloc[i], timeout = 100)
+    print(performance_data['URL'].iloc[i])
+    
+for i in range(len(performance_data)-1):
+    url = str(performance_data['URL'].iloc[i])
+    response = requests.get(url, timeout = 100)
     if response.status_code != 200:
         performance_data = performance_data.drop(performance_data.index[i])
         continue
@@ -32,8 +35,16 @@ for i in range(len(performance_data)):
         if j.status_code == 301:
             performance_data = performance_data.drop(performance_data.index[i])
 
-#################### Build Webscraper with Beautiful Soup #####################
+
+
+##########  Webscraper with Beautiful Soup  ##########
+            
+            
 urls = performance_data["URL"].tolist()
+clicks = performance_data["Clicks"].tolist()
+impressions = performance_data["Impressions"].tolist()
+ctr = performance_data["CTR"].tolist()
+position = performance_data["Position"].tolist()
 titles = []
 descriptions = []
 for i in urls:
@@ -45,18 +56,20 @@ for i in urls:
     titles.append(title)
 
 # create dataframe with url, title, description, date published
-text_data = pd.DataFrame(list(zip(urls, titles, descriptions)), 
-               columns =['URL', 'Title','Description']) 
+    
+text_data = pd.DataFrame(list(zip(urls, titles, descriptions, clicks, impressions, ctr, position)), 
+               columns =['URL', 'Title','Description', 'Clicks','Impressions','CTR','Poisition']) 
+
 #   pudlish date downloaded from wordpress
 
-date_data = pd.read_csv("url-dates.csv")
-#   figure our which urls match and which don't
-#merged_date = pd.merge(text_data, date_data, on='URL', how='outer', indicator=True)
+date_data = pd.read_csv("datasets/URL-dates.csv")
+
 
 text_data = date_data.merge(text_data, on=['URL'], how='inner')
 
 
-#################### Clean Text Data with NLP #################################
+##########  Formatting text data with NLP  ##########
+
 from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer
 
@@ -110,10 +123,11 @@ text_data['Length'] = text_data['Description'].apply(length)
 #################### Export Datasets #################################
 
 #   merge performance data and text data:
-performance_data = performance_data.rename(columns={"Page": "URL"})
-dataset = pd.merge(text_data, performance_data, on='URL')
+#performance_data = performance_data.rename(columns={"Page": "URL"})
+#dataset = pd.merge(text_data, performance_data, on='URL')
 
 #   export
-dataset.to_csv('datasets/text-and-traffic-data.csv')
+text_data.to_csv('datasets/text-and-traffic-data.csv')
+print('data exported')
 
 

@@ -94,12 +94,40 @@ def main(argv):
       output_row = [row['url'], row['query'], row['clicks'], row['impressions'], row['ctr'], row['position']]
       output_rows.append(output_row)
     
-  
+
   output_data = pd.DataFrame(list(output_rows), columns =['URL','Query','Clicks','Impressions','CTR','Position']) 
   print(output_data.iloc[1])
   output_data.to_csv("datasets/traffic_by_query.csv")
 
-
+  request = {
+      'startDate': flags.start_date,
+      'endDate': flags.end_date,
+      'dimensions': ['page'],
+      "dimensionFilterGroups": [
+    {
+      "filters": [
+        {
+          "dimension": "page",
+          "operator": "contains",
+          "expression": "/product/"
+        }
+      ]
+    }
+   ]
+  }
+      
+  response = execute_request(service, flags.property_uri, request)
+  
+  output_rows = []
+  
+  for row in response['rows']:
+      output_row = [row['keys'], row['clicks'], row['impressions'], row['ctr'], row['position']]
+      output_rows.append(output_row)
+      
+      
+  output_data = pd.DataFrame(list(output_rows),columns =['URL','Clicks','Impressions','CTR','Position'])
+  print(output_data.loc[1])
+  output_data.to_csv("datasets/traffic_by_page.csv")
 # =============================================================================
 #   # Get totals for the date range.
 #   request = {
